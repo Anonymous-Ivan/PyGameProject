@@ -24,7 +24,10 @@ class Player(pygame.sprite.Sprite):
         if what[pygame.K_RIGHT]:
             self.speed = 5
         self.rect.x += self.speed
-
+        if self.rect.x >= width - 55:
+            self.rect.x = width - 55
+        if self.rect.x <= 0:
+            self.rect.x = 5
 
 player = Player()
 all_sprites.add(player)
