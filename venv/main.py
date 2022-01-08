@@ -9,6 +9,12 @@ enem = pygame.sprite.Group()
 screen = pygame.display.set_mode(size)
 screen_rect = screen.get_rect()
 
+f = open("High_Score.txt", mode="r")
+
+high_score = str(f.read()).strip()
+f.close()
+q = open("High_Score.txt", mode="w")
+
 
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
@@ -31,8 +37,13 @@ font_name = pygame.font.match_font('Times New Roman')
 
 
 def draw_text(surf, text, size, x, y):
+    color = (255, 255, 0)
+
+    if text == str(high_score):
+        color = (0, 255, 255)
+
     font = pygame.font.Font(font_name, size)
-    text_surface = font.render(text, True, (255, 0, 0))
+    text_surface = font.render(text, True, color)
     text_rect = text_surface.get_rect()
     text_rect.midtop = (x, y)
     surf.blit(text_surface, text_rect)
@@ -133,6 +144,7 @@ for i in range(8):
 
 clock = pygame.time.Clock()
 running = True
+
 while running:
     clock.tick(FPS)
     for event in pygame.event.get():
@@ -149,6 +161,11 @@ while running:
     for hit in boom:
         player.hp -= 2
         if player.hp <= 0:
+            if score > int(high_score):
+                high_score = score
+                print(str(high_score).strip(), file=q)
+            else:
+                print(str(high_score).strip(), file=q)
             running = False
         m = Enemy()
         all_sprites.add(m)
@@ -166,7 +183,10 @@ while running:
     screen.blit(screen, screen_rect)
     all_sprites.draw(screen)
     draw_text(screen, str(score), 18, width / 2, 10)
+    draw_text(screen, str(high_score), 18, width / 4, 10)
     draw_hp_bar(screen, 390, 10, player.hp)
     pygame.display.flip()
 
+q.close()
 pygame.quit()
+
