@@ -7,6 +7,7 @@ all_sprites = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
 enem = pygame.sprite.Group()
 screen = pygame.display.set_mode(size)
+screen_rect = screen.get_rect()
 
 
 def load_image(name, colorkey=None):
@@ -26,6 +27,29 @@ def load_image(name, colorkey=None):
     return image
 
 
+font_name = pygame.font.match_font('Times New Roman')
+
+
+def draw_text(surf, text, size, x, y):
+    font = pygame.font.Font(font_name, size)
+    text_surface = font.render(text, True, (255, 0, 0))
+    text_rect = text_surface.get_rect()
+    text_rect.midtop = (x, y)
+    surf.blit(text_surface, text_rect)
+
+
+def draw_hp_bar(surf, x, y, a):
+    if a < 0:
+        a = 0
+    bar_lenght = 100
+    bar_height = 10
+    fill = (a / 10) * bar_lenght
+    outline_rect = pygame.Rect(x, y, bar_lenght, bar_height)
+    fill_rect = pygame.Rect(x, y, fill, bar_height)
+    pygame.draw.rect(surf, (255, 255, 0), fill_rect)
+    pygame.draw.rect(surf, (0, 0, 255), outline_rect, 2)
+
+
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
@@ -35,6 +59,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.centerx = width // 2
         self.rect.bottom = height - 20
         self.speed = 0
+        self.hp = 10
 
     def update(self):
         self.speed = 0
@@ -98,7 +123,7 @@ enemy_image = load_image('egg.png', -1)
 bullet_image = load_image('bullet.png', -1)
 player = Player()
 all_sprites.add(player)
-
+score = 0
 # спавн яиц
 
 for i in range(8):
@@ -120,19 +145,28 @@ while running:
     all_sprites.update()
 
     # проверка на игрок + враг
-    boom = pygame.sprite.spritecollide(player, enem, False)
-    if boom:
-        running = False
+    boom = pygame.sprite.spritecollide(player, enem, True, pygame.sprite.collide_circle)
+    for hit in boom:
+        player.hp -= 2
+        if player.hp <= 0:
+            running = False
+        m = Enemy()
+        all_sprites.add(m)
+        enem.add(m)
 
         # проверка на пулю + враг
     bulletsss = pygame.sprite.groupcollide(enem, bullets, True, True)
     for hit in bulletsss:
+        score += 5
         e = Enemy()
         all_sprites.add(e)
         enem.add(e)
 
     screen.fill((0, 0, 0))
+    screen.blit(screen, screen_rect)
     all_sprites.draw(screen)
+    draw_text(screen, str(score), 18, width / 2, 10)
+    draw_hp_bar(screen, 390, 10, player.hp)
     pygame.display.flip()
 
 pygame.quit()
