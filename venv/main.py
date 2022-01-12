@@ -4,11 +4,12 @@ pygame.init()
 size = width, height = 500, 800
 FPS = 60
 all_sprites = pygame.sprite.Group()
+boss_sprite = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
 enem = pygame.sprite.Group()
 screen = pygame.display.set_mode(size)
 screen_rect = screen.get_rect()
-
+p = 0
 f = open("High_Score.txt", mode="r")
 
 high_score = str(f.read()).strip()
@@ -91,6 +92,28 @@ class Player(pygame.sprite.Sprite):
         bullets.add(bullet)
 
 
+class Boss(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((100, 70))
+        self.image = boss_image
+        self.rect = self.image.get_rect()
+        self.rect.x = 50
+        self.rect.y = 50
+        self.speedy = 5
+        self.speedx = 5
+
+    def update(self):
+        if self.rect.x >= 50 and self.rect.y == 50:
+            self.rect.x += self.speedx
+        if self.rect.x == 300:
+            self.rect.y += self.speedy
+        if self.rect.y == 500:
+            self.rect.x -= self.speedx
+        if self.rect.x == 50:
+            self.rect.y -= self.speedy
+
+
 class Enemy(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
@@ -100,7 +123,6 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.x = random.randrange(width - self.rect.width)
         self.rect.y = random.randrange(-100, -40)
         self.speedy = random.randrange(1, 8)
-        self.speedx = random.randrange(-3, 3)
 
     def update(self):
         self.rect.y += self.speedy
@@ -132,6 +154,7 @@ class Bullet(pygame.sprite.Sprite):
 player_image = load_image('ship.png', -1)
 enemy_image = load_image('egg.png', -1)
 bullet_image = load_image('bullet.png', -1)
+boss_image = load_image('UFO.png', -1)
 player = Player()
 all_sprites.add(player)
 score = 0
@@ -144,7 +167,8 @@ for i in range(8):
 
 clock = pygame.time.Clock()
 running = True
-
+num_hits = 0
+boss_spawn_counter = 0
 while running:
     clock.tick(FPS)
     for event in pygame.event.get():
@@ -161,11 +185,7 @@ while running:
     for hit in boom:
         player.hp -= 2
         if player.hp <= 0:
-            if score > int(high_score):
-                high_score = score
-                print(str(high_score).strip(), file=q)
-            else:
-                print(str(high_score).strip(), file=q)
+
             running = False
         m = Enemy()
         all_sprites.add(m)
@@ -173,11 +193,39 @@ while running:
 
         # проверка на пулю + враг
     bulletsss = pygame.sprite.groupcollide(enem, bullets, True, True)
+
     for hit in bulletsss:
         score += 5
         e = Enemy()
         all_sprites.add(e)
         enem.add(e)
+        boss_spawn_counter += 1
+
+    if boss_spawn_counter == 50:
+        for elem in enem:
+            elem.kill()
+
+        b = Boss()
+        all_sprites.add(b)
+        boss_sprite.add(b)
+        boss_spawn_counter = 0
+
+    # босс + пуля
+    boss_check = pygame.sprite.groupcollide(boss_sprite, bullets, False, True)
+
+    for hit in boss_check:
+        num_hits += 1
+
+    if num_hits == 20:
+        for elem in boss_sprite:
+            elem.kill()
+            score += 300
+        for i in range(8):
+            e = Enemy()
+            all_sprites.add(e)
+            enem.add(e)
+        num_hits = 0
+
 
     screen.fill((0, 0, 0))
     screen.blit(screen, screen_rect)
@@ -186,7 +234,11 @@ while running:
     draw_text(screen, str(high_score), 18, width / 4, 10)
     draw_hp_bar(screen, 390, 10, player.hp)
     pygame.display.flip()
-
+if score > int(high_score):
+    high_score = score
+    print(str(high_score).strip(), file=q)
+else:
+    print(str(high_score).strip(), file=q)
 q.close()
 pygame.quit()
 
