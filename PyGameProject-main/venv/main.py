@@ -24,6 +24,7 @@ xx = 0
 yy = 0
 p = 0
 time = 0
+score = 0
 f = open("High_Score.txt", mode="r")
 
 high_score = str(f.read()).strip()
@@ -254,11 +255,18 @@ class Buttons:
 
 
 def game_over():
+    global high_score, score 
     stop = True
     while stop:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
+                if score > int(high_score):
+                    high_score = score
+                    print(str(high_score).strip(), file=q)
+                else:
+                    print(str(high_score).strip(), file=q)
+                q.close()
                 quit()
 
         printed("GAME OVER!", 150, 300, fnt_clr = (250, 250, 250), fnt="Usually-font.otf", fnt_size=30)
@@ -289,8 +297,7 @@ all_sprites.add(player)
 
 
 def game():
-    score = 0
-    high_score = 0
+    global score, high_score
     # спавн яиц
 
     for i in range(8):
@@ -349,7 +356,7 @@ def game():
             enem.add(e)
             boss_spawn_counter += 1
 
-        if boss_spawn_counter == 5:
+        if boss_spawn_counter == 50:
             for elem in enem:
                 elem.kill()
 
@@ -398,6 +405,7 @@ def game():
 
 
 def menu():
+    global high_score, score
     menu_bck = pygame.image.load("fon.jpg")
     start = Buttons(w=200, h=70, off_clr=(14, 0, 45), on_clr=(207, 197, 242))
     ext = Buttons(w=200, h=70, off_clr=(14, 0, 45), on_clr=(207, 197, 242))
@@ -406,6 +414,12 @@ def menu():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
+                if score > int(high_score):
+                    high_score = score
+                    print(str(high_score).strip(), file=q)
+                else:
+                    print(str(high_score).strip(), file=q)
+                q.close()
                 quit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 pygame.mixer.Sound.play(btn_sound)
