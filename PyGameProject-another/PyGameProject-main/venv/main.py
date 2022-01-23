@@ -306,7 +306,7 @@ def game_over():
                     print(str(high_score).strip(), file=q)
                 else:
                     print(str(high_score).strip(), file=q)
-                q.close()
+
                 quit()
 
         screen.blit(g_o, (0, 0))
@@ -429,7 +429,7 @@ def game():
             enem.add(e)
             boss_spawn_counter += 1
 
-        if boss_spawn_counter == 10:
+        if boss_spawn_counter == 50:
             for elem in enem:
                 elem.kill()
 
@@ -450,8 +450,7 @@ def game():
         for hit in boss_check:
             num_hits += 1
 
-
-        if num_hits == 20:
+        if num_hits == 30:
             for elem in boss_sprite:
                 boom_sound.play()
                 expl = Explosion(elem.rect.center, 'bb')
@@ -479,7 +478,7 @@ def game():
         print(str(high_score).strip(), file=q)
     else:
         print(str(high_score).strip(), file=q)
-    q.close()
+
 
 
 def menu():
@@ -500,7 +499,6 @@ def menu():
                     print(str(high_score).strip(), file=q)
                 else:
                     print(str(high_score).strip(), file=q)
-                q.close()
                 quit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 pygame.mixer.Sound.play(btn_sound)
@@ -521,5 +519,5 @@ menu()
 game()
 
 pygame.quit()
-
+q.close()
 quit()
