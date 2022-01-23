@@ -14,6 +14,7 @@ enem_2 = pygame.sprite.Group()
 screen = pygame.display.set_mode(size)
 screen_rect = screen.get_rect()
 dir_sound = path.join(path.dirname(__file__), 'sounds')
+dir_data = path.join(path.dirname(__file__), 'data')
 pygame.mixer.music.load("sounds/pause.wav")
 clock = pygame.time.Clock()
 btn_sound = pygame.mixer.Sound(path.join(dir_sound, 'btn.wav'))
@@ -23,6 +24,16 @@ boom_sound = pygame.mixer.Sound(path.join(dir_sound, 'boom.wav'))
 lost_sound = pygame.mixer.Sound(path.join(dir_sound, 'lose.wav'))
 menu_snd = pygame.mixer.Sound(path.join(dir_sound, 'menu.wav'))
 game_snd = pygame.mixer.Sound(path.join(dir_sound, 'game.wav'))
+
+explosion_anim = {}
+explosion_anim['bb'] = []
+for i in range(9):
+    filename = 'regularExplosion0{}.png'.format(i)
+    img = pygame.image.load(path.join(dir_data, filename)).convert()
+    img.set_colorkey((0, 0, 0))
+    img_sm = pygame.transform.scale(img, (30, 30))
+    explosion_anim['bb'].append(img_sm)
+
 xx = 0
 yy = 0
 p = 0
@@ -112,6 +123,31 @@ def pause():
 
         pygame.display.update()
         clock.tick(15)
+
+
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self, center, size):
+        pygame.sprite.Sprite.__init__(self)
+        self.size = size
+        self.image = explosion_anim[self.size][0]
+        self.rect = self.image.get_rect()
+        self.rect.center = center
+        self.frame = 0
+        self.last_update = pygame.time.get_ticks()
+        self.frame_rate = 50
+
+    def update(self):
+        now = pygame.time.get_ticks()
+        if now - self.last_update > self.frame_rate:
+            self.last_update = now
+            self.frame += 1
+            if self.frame == len(explosion_anim[self.size]):
+                self.kill()
+            else:
+                center = self.rect.center
+                self.image = explosion_anim[self.size][self.frame]
+                self.rect = self.image.get_rect()
+                self.rect.center = center
 
 
 class Player(pygame.sprite.Sprite):
@@ -206,6 +242,8 @@ class Enemy(pygame.sprite.Sprite):
             self.rect.x = random.randrange(width - self.rect.width)
             self.rect.y = random.randrange(-100, -40)
             self.speedy = random.randrange(1, 8)
+
+
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -357,6 +395,8 @@ def game():
         boom = pygame.sprite.spritecollide(player, enem, True, pygame.sprite.collide_circle)
         for hit in boom:
             boom_sound.play()
+            expl = Explosion(hit.rect.center, 'bb')
+            all_sprites.add(expl)
             player.hp -= 2
             if player.hp <= 0:
                 pygame.mixer.Sound.stop(game_snd)
@@ -382,12 +422,14 @@ def game():
         for hit in bulletsss:
             egg_sound.play()
             score += 5
+            expl = Explosion(hit.rect.center, 'bb')
+            all_sprites.add(expl)
             e = Enemy()
             all_sprites.add(e)
             enem.add(e)
             boss_spawn_counter += 1
 
-        if boss_spawn_counter == 50:
+        if boss_spawn_counter == 10:
             for elem in enem:
                 elem.kill()
 
@@ -399,6 +441,8 @@ def game():
         bulle = pygame.sprite.groupcollide(enem_2, bullets, True, True)
         for i in bulle:
             egg_sound.play()
+            expl = Explosion(i.rect.center, 'bb')
+            all_sprites.add(expl)
 
         # босс + пуля
         boss_check = pygame.sprite.groupcollide(boss_sprite, bullets, False, True)
@@ -406,8 +450,12 @@ def game():
         for hit in boss_check:
             num_hits += 1
 
+
         if num_hits == 20:
             for elem in boss_sprite:
+                boom_sound.play()
+                expl = Explosion(elem.rect.center, 'bb')
+                all_sprites.add(expl)
                 elem.kill()
                 score += 300
             for i in range(8):
@@ -464,7 +512,6 @@ def menu():
         # scr.draw_but(160, 450, "Score", prnt_score, 50)
         ext.draw_but(160, 550, "EXIT", quit, 50)
 
-
         pygame.display.update()
         clock.tick(60)
 
@@ -474,5 +521,5 @@ menu()
 game()
 
 pygame.quit()
-quit()
 
+quit()
