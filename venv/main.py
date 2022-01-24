@@ -115,12 +115,19 @@ def pause():
                     else:
                         pygame.mixer.music.unpause()
         printed("Pause. Press *enter* to continue", 100, 300)
+        printed("Press *space* to back to menu", 100, 350)
+
 
         key = pygame.key.get_pressed()
         if key[pygame.K_RETURN]:
             paused = False
             pygame.mixer.music.pause()
             pygame.mixer.Sound.play(game_snd)
+
+        if key[pygame.K_SPACE]:
+            paused = False
+            pygame.mixer.music.pause()
+            menu()
 
         pygame.display.update()
         clock.tick(15)
@@ -284,7 +291,6 @@ class Buttons:
                     if act is not None:
                         act()
 
-
         else:
             pygame.draw.rect(screen, (14, 6, 45), (x, y, self.w, self.h))
 
@@ -292,7 +298,6 @@ class Buttons:
 
 
 #функция для кнопки "Score"
-
 
 def prnt_score():
     global high_score, score
@@ -306,8 +311,10 @@ def prnt_score():
                 quit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
+                    pygame.mixer.Sound.stop(menu_snd)
                     game()
                 if event.key == pygame.K_ESCAPE:
+                    pygame.mixer.Sound.stop(menu_snd)
                     menu()
 
         pygame.display.flip()
@@ -335,18 +342,19 @@ def game_over():
         printed("GAME OVER!", 150, 300, fnt_clr=(250, 250, 250), fnt="Usually-font.otf", fnt_size=30)
         pygame.mixer.Sound.play(lost_sound)
 
-        # кнопка возобновления игры после поражения (доработаю)
+        # кнопка возобновления игры после поражения
 
         rtrn.draw_but(150, 370, "Try Again", game, 30)
         back.draw_but(150, 450, "Menu", menu, 30)
         player.hp = 10
+        if score > int(high_score):
+            high_score = score
+            print(str(high_score).strip(), file=q, end='\n')
+        score = 0
 
         pygame.display.update()
         clock.tick(100)
-    if score > int(high_score):
-        high_score = score
-        print(str(high_score).strip(), file=q, end='\n')
-    score = 0
+
 
 
 # подгрузка изображений
@@ -371,7 +379,7 @@ def game():
         e = Enemy()
         all_sprites.add(e)
         enem.add(e)
-
+    pygame.mixer.Sound.stop(lost_sound)
     pygame.mixer.Sound.play(game_snd, -1)
     running = True
     num_hits = 0
@@ -492,6 +500,7 @@ def menu():
     start = Buttons(w=200, h=70, off_clr=(14, 0, 45), on_clr=(207, 197, 242))
     ext = Buttons(w=200, h=70, off_clr=(14, 0, 45), on_clr=(207, 197, 242))
     scr = Buttons(w=200, h=70, off_clr=(14, 0, 45), on_clr=(207, 197, 242))
+    pygame.mixer.Sound.stop(lost_sound)
     pygame.mixer.Sound.play(menu_snd)
     show = True
     while show:
