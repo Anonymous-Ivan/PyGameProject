@@ -41,9 +41,10 @@ time = 0
 score = 0
 f = open("High_Score.txt", mode="r")
 
-high_score = str(f.read()).strip()
+high_score = str(f.read()).split('\n')[-2]
+
 f.close()
-q = open("High_Score.txt", mode="w")
+q = open("High_Score.txt", mode="a")
 
 
 def load_image(name, colorkey=None):
@@ -327,10 +328,7 @@ def game_over():
                 pygame.quit()
                 if score > int(high_score):
                     high_score = score
-                    print(str(high_score).strip(), file=q)
-                else:
-                    print(str(high_score).strip(), file=q)
-
+                    print(str(high_score).strip(), file=q, end='\n')
                 quit()
 
         screen.blit(g_o, (0, 0))
@@ -347,9 +345,7 @@ def game_over():
         clock.tick(100)
     if score > int(high_score):
         high_score = score
-        print(str(high_score).strip(), file=q)
-    else:
-        print(str(high_score).strip(), file=q)
+        print(str(high_score).strip(), file=q, end='\n')
     score = 0
 
 
@@ -366,6 +362,7 @@ all_sprites.add(player)
 
 def game():
     global score, high_score
+    score = 0
     bck = pygame.image.load("bkrnd.jpg")
 
     # спавн яиц
@@ -476,12 +473,17 @@ def game():
         draw_hp_bar(screen, 390, 10, player.hp)
         pygame.display.flip()
 
-
     if score > int(high_score):
         high_score = score
-        print(str(high_score).strip(), file=q)
-    else:
-        print(str(high_score).strip(), file=q)
+        print(str(high_score).strip(), file=q, end='\n')
+
+
+def exitt():
+    global score, high_score
+    if score > int(high_score):
+        high_score = score
+        print(str(high_score).strip(), file=q, end='\n')
+    quit()
 
 
 def menu():
@@ -497,12 +499,9 @@ def menu():
             if event.type == pygame.QUIT:
                 show = False
                 pygame.quit()
-
                 if score > int(high_score):
                     high_score = score
-                    print(str(high_score).strip(), file=q)
-                else:
-                    print(str(high_score).strip(), file=q)
+                    print(str(high_score).strip(), file=q, end='\n')
                 quit()
 
 
@@ -516,7 +515,7 @@ def menu():
         screen.blit(menu_bck, (0, 0))
         start.draw_but(160, 350, "START", game, 50)
         scr.draw_but(160, 450, "Score", prnt_score, 50)
-        ext.draw_but(160, 550, "EXIT", quit, 50)
+        ext.draw_but(160, 550, "EXIT", exitt, 50)
 
         pygame.display.update()
         clock.tick(60)
