@@ -1,6 +1,7 @@
 import pygame, os, sys, random
 from os import path
 
+
 pygame.init()
 size = width, height = 500, 800
 FPS = 60
@@ -13,13 +14,31 @@ enem_2 = pygame.sprite.Group()
 screen = pygame.display.set_mode(size)
 screen_rect = screen.get_rect()
 dir_sound = path.join(path.dirname(__file__), 'sounds')
+dir_data = path.join(path.dirname(__file__), 'data')
+pygame.mixer.music.load("sounds/pause.wav")
+clock = pygame.time.Clock()
+btn_sound = pygame.mixer.Sound(path.join(dir_sound, 'btn.wav'))
 shoot_sound = pygame.mixer.Sound(path.join(dir_sound, 'pew.wav'))
 egg_sound = pygame.mixer.Sound(path.join(dir_sound, 'egg.wav'))
 boom_sound = pygame.mixer.Sound(path.join(dir_sound, 'boom.wav'))
+lost_sound = pygame.mixer.Sound(path.join(dir_sound, 'lose.wav'))
+menu_snd = pygame.mixer.Sound(path.join(dir_sound, 'menu.wav'))
+game_snd = pygame.mixer.Sound(path.join(dir_sound, 'game.wav'))
+
+explosion_anim = {}
+explosion_anim['bb'] = []
+for i in range(9):
+    filename = 'regularExplosion0{}.png'.format(i)
+    img = pygame.image.load(path.join(dir_data, filename)).convert()
+    img.set_colorkey((0, 0, 0))
+    img_sm = pygame.transform.scale(img, (30, 30))
+    explosion_anim['bb'].append(img_sm)
+
 xx = 0
 yy = 0
 p = 0
 time = 0
+score = 0
 f = open("High_Score.txt", mode="r")
 
 high_score = str(f.read()).strip()
@@ -70,6 +89,65 @@ def draw_hp_bar(surf, x, y, a):
     fill_rect = pygame.Rect(x, y, fill, bar_height)
     pygame.draw.rect(surf, (255, 255, 0), fill_rect)
     pygame.draw.rect(surf, (0, 0, 255), outline_rect, 2)
+
+
+def printed(mess, x, y, fnt_clr = (250, 250, 250), fnt="Usually-font.otf", fnt_size=15):
+    fnt = pygame.font.Font(fnt, fnt_size)
+    txt = fnt.render(mess, True, fnt_clr)
+    screen.blit(txt, (x, y))
+
+
+def pause():
+    paused = True
+    flPause = False
+    pygame.mixer.music.play(-1)
+    while paused:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    flPause = not flPause
+                    if flPause:
+                        pygame.mixer.music.pause()
+                    else:
+                        pygame.mixer.music.unpause()
+        printed("Pause. Press *enter* to continue", 100, 300)
+
+        key = pygame.key.get_pressed()
+        if key[pygame.K_RETURN]:
+            paused = False
+            pygame.mixer.music.pause()
+            pygame.mixer.Sound.play(game_snd)
+
+        pygame.display.update()
+        clock.tick(15)
+
+
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self, center, size):
+        pygame.sprite.Sprite.__init__(self)
+        self.size = size
+        self.image = explosion_anim[self.size][0]
+        self.rect = self.image.get_rect()
+        self.rect.center = center
+        self.frame = 0
+        self.last_update = pygame.time.get_ticks()
+        self.frame_rate = 50
+
+    def update(self):
+        now = pygame.time.get_ticks()
+        if now - self.last_update > self.frame_rate:
+            self.last_update = now
+            self.frame += 1
+            if self.frame == len(explosion_anim[self.size]):
+                self.kill()
+            else:
+                center = self.rect.center
+                self.image = explosion_anim[self.size][self.frame]
+                self.rect = self.image.get_rect()
+                self.rect.center = center
 
 
 class Player(pygame.sprite.Sprite):
@@ -182,8 +260,100 @@ class Bullet(pygame.sprite.Sprite):
         if self.rect.bottom < 0:
             self.kill()
 
-# подгрузка изображений
 
+class Buttons:
+    def __init__(self, w, h, off_clr, on_clr):
+        self.w = w
+        self.h = h
+        self.off = off_clr
+        self.on = on_clr
+
+    def draw_but(self, x, y, text, act=None, fnt_sz=15):
+        ms = pygame.mouse.get_pos()
+        clk = pygame.mouse.get_pressed()
+
+        if x < ms[0] < x + self.w:
+            if y < ms[1] < y + self.h:
+                pygame.draw.rect(screen, (207, 197, 242), (x, y, self.w, self.h))
+
+                if clk[0] == 1:
+                    pygame.mixer.Sound.play(btn_sound)
+                    pygame.time.delay(300)
+
+                    if act is not None:
+                        act()
+
+
+        else:
+            pygame.draw.rect(screen, (14, 6, 45), (x, y, self.w, self.h))
+
+        printed(mess=text, x=x + 10, y=y + 10, fnt_size=fnt_sz)
+
+
+#функция для кнопки "Score"
+
+
+def prnt_score():
+    global high_score, score
+    bck = pygame.image.load("bkrnd.jpg")
+    pygame.mixer.Sound.play(menu_snd)
+    sc = True
+    while sc:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    game()
+                if event.key == pygame.K_ESCAPE:
+                    menu()
+
+        pygame.display.flip()
+        screen.blit(bck, (0, 0))
+        printed(f"Your best score: {high_score}!", 100, 300,
+                 fnt_clr=(250, 250, 250), fnt="Gomawo.ttf", fnt_size=40)
+
+
+def game_over():
+    global high_score, score
+    g_o = pygame.image.load("game over.jpg")
+    rtrn = Buttons(w=200, h=70, off_clr=(14, 0, 45), on_clr=(207, 197, 242))
+    back = Buttons(w=200, h=70, off_clr=(14, 0, 45), on_clr=(207, 197, 242))
+    stop = True
+    while stop:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                if score > int(high_score):
+                    high_score = score
+                    print(str(high_score).strip(), file=q)
+                else:
+                    print(str(high_score).strip(), file=q)
+
+                quit()
+
+        screen.blit(g_o, (0, 0))
+        printed("GAME OVER!", 150, 300, fnt_clr=(250, 250, 250), fnt="Usually-font.otf", fnt_size=30)
+        pygame.mixer.Sound.play(lost_sound)
+
+        # кнопка возобновления игры после поражения (доработаю)
+
+        rtrn.draw_but(150, 370, "Try Again", game, 30)
+        back.draw_but(150, 450, "Menu", menu, 30)
+        player.hp = 10
+
+        pygame.display.update()
+        clock.tick(100)
+    if score > int(high_score):
+        high_score = score
+        print(str(high_score).strip(), file=q)
+    else:
+        print(str(high_score).strip(), file=q)
+    score = 0
+
+
+# подгрузка изображений
 
 player_image = load_image('ship.png', -1)
 enemy_image = load_image('egg.png', -1)
@@ -192,102 +362,168 @@ boss_image = load_image('UFO.png', -1)
 g_egg = load_image('g_egg.png', -1)
 player = Player()
 all_sprites.add(player)
-score = 0
-# спавн яиц
-
-for i in range(8):
-    e = Enemy()
-    all_sprites.add(e)
-    enem.add(e)
-
-clock = pygame.time.Clock()
-running = True
-num_hits = 0
-boss_spawn_counter = 0
-while running:
-    clock.tick(FPS)
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
-                player.shoot()
-
-    all_sprites.update()
-
-    # проверка на игрок + враг
-    boom = pygame.sprite.spritecollide(player, enem, True, pygame.sprite.collide_circle)
-    for hit in boom:
-        boom_sound.play()
-        player.hp -= 2
-        if player.hp <= 0:
-
-            running = False
-        m = Enemy()
-        all_sprites.add(m)
-        enem.add(m)
-
-    boom2 = pygame.sprite.spritecollide(player, enem_2, True, pygame.sprite.collide_circle)
-    for hit in boom2:
-        boom_sound.play()
-        player.hp -= 2
-        if player.hp <= 0:
-            running = False
 
 
-        # проверка на пулю + враг
-    bulletsss = pygame.sprite.groupcollide(enem, bullets, True, True)
+def game():
+    global score, high_score
+    bck = pygame.image.load("bkrnd.jpg")
 
-    for hit in bulletsss:
-        egg_sound.play()
-        score += 5
+    # спавн яиц
+
+    for i in range(8):
         e = Enemy()
         all_sprites.add(e)
         enem.add(e)
-        boss_spawn_counter += 1
 
-    if boss_spawn_counter == 5:
-        for elem in enem:
-            elem.kill()
+    pygame.mixer.Sound.play(game_snd, -1)
+    running = True
+    num_hits = 0
+    boss_spawn_counter = 0
+    while running:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+                pygame.quit()
+                quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    player.shoot()
+                if event.key == pygame.K_ESCAPE:
+                    pygame.mixer.Sound.stop(game_snd)
+                    pause()
 
-        b = Boss()
-        all_sprites.add(b)
-        boss_sprite.add(b)
-        boss_spawn_counter = 0
+        all_sprites.update()
 
-    bulle = pygame.sprite.groupcollide(enem_2, bullets, True, True)
-    for i in bulle:
-        egg_sound.play()
+        # проверка на игрок + враг
+        boom = pygame.sprite.spritecollide(player, enem, True, pygame.sprite.collide_circle)
+        for hit in boom:
+            boom_sound.play()
+            expl = Explosion(hit.rect.center, 'bb')
+            all_sprites.add(expl)
+            player.hp -= 2
+            if player.hp <= 0:
+                pygame.mixer.Sound.stop(game_snd)
+                game_over()
+                running = False
 
-    # босс + пуля
-    boss_check = pygame.sprite.groupcollide(boss_sprite, bullets, False, True)
+            m = Enemy()
+            all_sprites.add(m)
+            enem.add(m)
 
-    for hit in boss_check:
-        num_hits += 1
+        boom2 = pygame.sprite.spritecollide(player, enem_2, True, pygame.sprite.collide_circle)
+        for hit in boom2:
+            boom_sound.play()
+            player.hp -= 2
+            if player.hp <= 0:
+                pygame.mixer.Sound.stop(game_snd)
+                game_over()
+                running = False
 
-    if num_hits == 20:
-        for elem in boss_sprite:
-            elem.kill()
-            score += 300
-        for i in range(8):
+            # проверка на пулю + враг
+        bulletsss = pygame.sprite.groupcollide(enem, bullets, True, True)
+
+        for hit in bulletsss:
+            egg_sound.play()
+            score += 5
+            expl = Explosion(hit.rect.center, 'bb')
+            all_sprites.add(expl)
             e = Enemy()
             all_sprites.add(e)
             enem.add(e)
-        num_hits = 0
+            boss_spawn_counter += 1
+
+        if boss_spawn_counter == 50:
+            for elem in enem:
+                elem.kill()
+
+            b = Boss()
+            all_sprites.add(b)
+            boss_sprite.add(b)
+            boss_spawn_counter = 0
+
+        bulle = pygame.sprite.groupcollide(enem_2, bullets, True, True)
+        for i in bulle:
+            egg_sound.play()
+            expl = Explosion(i.rect.center, 'bb')
+            all_sprites.add(expl)
+
+        # босс + пуля
+        boss_check = pygame.sprite.groupcollide(boss_sprite, bullets, False, True)
+
+        for hit in boss_check:
+            num_hits += 1
+
+        if num_hits == 30:
+            for elem in boss_sprite:
+                boom_sound.play()
+                expl = Explosion(elem.rect.center, 'bb')
+                all_sprites.add(expl)
+                elem.kill()
+                score += 300
+            for i in range(8):
+                e = Enemy()
+                all_sprites.add(e)
+                enem.add(e)
+            num_hits = 0
 
 
-    screen.fill((0, 0, 0))
-    screen.blit(screen, screen_rect)
-    all_sprites.draw(screen)
-    draw_text(screen, str(score), 18, width / 2, 10)
-    draw_text(screen, str(high_score), 18, width / 4, 10)
-    draw_hp_bar(screen, 390, 10, player.hp)
-    pygame.display.flip()
-if score > int(high_score):
-    high_score = score
-    print(str(high_score).strip(), file=q)
-else:
-    print(str(high_score).strip(), file=q)
-q.close()
+        screen.blit(screen, screen_rect)
+        screen.blit(bck, (0, 0))
+        all_sprites.draw(screen)
+        draw_text(screen, str(score), 18, width / 2, 10)
+        draw_text(screen, str(high_score), 18, width / 4, 10)
+        draw_hp_bar(screen, 390, 10, player.hp)
+        pygame.display.flip()
+
+
+    if score > int(high_score):
+        high_score = score
+        print(str(high_score).strip(), file=q)
+    else:
+        print(str(high_score).strip(), file=q)
+
+
+def menu():
+    global high_score, score
+    menu_bck = pygame.image.load("fon.jpg")
+    start = Buttons(w=200, h=70, off_clr=(14, 0, 45), on_clr=(207, 197, 242))
+    ext = Buttons(w=200, h=70, off_clr=(14, 0, 45), on_clr=(207, 197, 242))
+    scr = Buttons(w=200, h=70, off_clr=(14, 0, 45), on_clr=(207, 197, 242))
+    pygame.mixer.Sound.play(menu_snd)
+    show = True
+    while show:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                show = False
+                pygame.quit()
+
+                if score > int(high_score):
+                    high_score = score
+                    print(str(high_score).strip(), file=q)
+                else:
+                    print(str(high_score).strip(), file=q)
+                quit()
+
+
+            key = pygame.key.get_pressed()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if key[pygame.K_SPACE]:
+                    prnt_score()
+                pygame.mixer.Sound.play(btn_sound)
+                pygame.mixer.Sound.stop(menu_snd)
+
+        screen.blit(menu_bck, (0, 0))
+        start.draw_but(160, 350, "START", game, 50)
+        scr.draw_but(160, 450, "Score", prnt_score, 50)
+        ext.draw_but(160, 550, "EXIT", quit, 50)
+
+        pygame.display.update()
+        clock.tick(60)
+
+
+menu()
+
 pygame.quit()
-
+q.close()
+quit()
