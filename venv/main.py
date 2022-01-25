@@ -27,12 +27,15 @@ game_snd = pygame.mixer.Sound(path.join(dir_sound, 'game.wav'))
 
 explosion_anim = {}
 explosion_anim['bb'] = []
+explosion_anim['bigb'] = []
 for i in range(9):
     filename = 'regularExplosion0{}.png'.format(i)
     img = pygame.image.load(path.join(dir_data, filename)).convert()
     img.set_colorkey((0, 0, 0))
     img_sm = pygame.transform.scale(img, (30, 30))
     explosion_anim['bb'].append(img_sm)
+    img_lg = pygame.transform.scale(img, (150, 150))
+    explosion_anim['bigb'].append(img_lg)
 
 xx = 0
 yy = 0
@@ -462,10 +465,11 @@ def game():
         if num_hits == 30:
             for elem in boss_sprite:
                 boom_sound.play()
-                expl = Explosion(elem.rect.center, 'bb')
+                expl = Explosion(elem.rect.center, 'bigb')
                 all_sprites.add(expl)
                 elem.kill()
                 score += 300
+                num_hits = 0
             for i in range(8):
                 e = Enemy()
                 all_sprites.add(e)
